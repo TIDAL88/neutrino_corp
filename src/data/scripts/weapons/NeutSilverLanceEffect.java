@@ -14,15 +14,11 @@ import com.fs.starfarer.api.combat.MissileAPI;
 import com.fs.starfarer.api.combat.ShipAPI;
 import com.fs.starfarer.api.graphics.SpriteAPI;
 import com.fs.starfarer.api.util.IntervalUtil;
-import static data.scripts.NCModPlugin.ShaderLibExists;
-import data.scripts.hullmods.TEM_LatticeShield;
-import static data.scripts.NCModPlugin.TemplarsExists;
 import data.scripts.plugins.Neutrino_FakeBeamPlugin;
 import data.scripts.util.Neutrino_CollisionUtilsEX;
 import data.scripts.util.Neutrino_ParticlesEffectLib;
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import org.dark.shaders.distortion.DistortionShader;
@@ -106,18 +102,12 @@ public class NeutSilverLanceEffect implements BeamEffectPlugin {
                         continue;
                     }
                     // check for ship hit. find out shield hit point, hull hit point, and hull exit point.
-                    if (e instanceof ShipAPI) {
-                        ShipAPI s = (ShipAPI) e;
+                    if (e instanceof ShipAPI s) {
                         if (s == source || (s.isFighter() && s.getOwner() == source.getOwner()) || s.isPhased()) {
                             continue;
                         }
                         PiercedEntity piercedEntity = new PiercedEntity();
                         piercedEntity.entity = e;
-                        if (TemplarsExists && s.getVariant().getHullMods().contains("tem_latticeshield") && TEM_LatticeShield.shieldLevel(s) > 0f) {
-                            piercedEntity.isLatticeShield = true;
-                            piercedEntity.hullHit = CollisionUtils.getCollisionPoint(beamForm, beamTo, e);
-                            piercedEntity.shieldHit = piercedEntity.hullHit;
-                        }
                         piercedEntity.shieldHit = Neutrino_CollisionUtilsEX.getShieldCollisionPoint(beamForm, beamTo, s, false);
                         piercedEntity.hullHit = CollisionUtils.getCollisionPoint(beamForm, beamTo, e);
 
@@ -156,7 +146,7 @@ public class NeutSilverLanceEffect implements BeamEffectPlugin {
                 if (!PiercedEntities.isEmpty()) {
                     // sort all hit point by distance to beamForm.
                     if (PiercedEntities.size() > 1) {
-                        Collections.sort(PiercedEntities, new SortByDistance(beamForm));
+                        PiercedEntities.sort(new SortByDistance(beamForm));
                     }
                     Vector2f beamDir = Vector2f.sub(beamTo, beamForm, null);
                     // ...and check it one by one.
@@ -166,14 +156,13 @@ public class NeutSilverLanceEffect implements BeamEffectPlugin {
                             if (Vector2f.dot(beamDir, Vector2f.sub(pe.hullHit, tmp, null)) <= 0) {
                                 continue;
                             }
-                            hullHitDmg = pe.entity.getMaxHitpoints() < hullHitDmg ? pe.entity.getMaxHitpoints() : hullHitDmg;
+                            hullHitDmg = Math.min(pe.entity.getMaxHitpoints(), hullHitDmg);
                             engine.applyDamage(pe.entity, pe.hullHit, hullHitDmg, damageType, 0f, false, true, source);
                             dmg -= hullHitDmg;
                             continue;
                         }
-                        if (pe.entity instanceof ShipAPI) {
-                            ShipAPI ship = (ShipAPI) pe.entity;
-                            float beamDmgMutl = ((ShipAPI) pe.entity).getMutableStats().getBeamDamageTakenMult().getModifiedValue();
+                        if (pe.entity instanceof ShipAPI ship) {
+                            float beamDmgMutl = ship.getMutableStats().getBeamDamageTakenMult().getModifiedValue();
                             // check for a shieldHit. 
                             boolean hitShield = false;
                             float targetShieldDmgFluxRaido = 1f;
@@ -227,7 +216,7 @@ public class NeutSilverLanceEffect implements BeamEffectPlugin {
                                 // apply damage on shield!
                                 engine.applyDamage(ship, pe.shieldHit, dmgOnshield * shieldHitHardFulxRatio * beamDmgMutl, damageType, 0f, false, false, source);
                                 engine.applyDamage(ship, pe.shieldHit, dmgOnshield * (1f - shieldHitHardFulxRatio) * beamDmgMutl, damageType, 0f, false, true, source);
-                                if (end == true) {
+                                if (end) {
                                     break;
                                 }
                                 hitShield = true;
@@ -245,7 +234,7 @@ public class NeutSilverLanceEffect implements BeamEffectPlugin {
                                         SimpleEntity ramdon = new SimpleEntity(MathUtils.getRandomPointOnCircumference(pe.shieldHit, MathUtils.getRandomNumberInRange(0, 1)));
                                         engine.spawnEmpArc(source, pe.shieldHit, ramdon, ramdon, damageType, 0, 0, 0, null, 20, arcColor, arcFringeColor);
                                         engine.applyDamage(ship, ramdon.getLocation(), extraHitDmg, damageType, 0, false, false, source);
-                                        if (end == true) {
+                                        if (end) {
                                             break;
                                         }
                                         dmg -= extraHitDmg;
@@ -372,12 +361,11 @@ public class NeutSilverLanceEffect implements BeamEffectPlugin {
                                     dmg -= piercingDmg;
                                     ship.getMutableStats().getEffectiveArmorBonus().unmodify("NeutSilverLanceEffect");
                                 }
-                                if (end == true) {
+                                if (end) {
                                     break;
                                 }
+                                if (ship.isFighter()){
                                 // seens like fighter can cause trouble in some case, so we should do some trick on it.
-                                if (ship.isFighter()) {
-
                                 } else if (PiercedEntities.iterator().hasNext() && !CollisionUtils.isPointWithinBounds(beamTo, ship)) {
                                     // do some beam exit point VFX
                                     tmp = pe.exit;
@@ -418,7 +406,7 @@ public class NeutSilverLanceEffect implements BeamEffectPlugin {
                 // SFX
                 Global.getSoundPlayer().playSound("neutrino_silverlance_fire", 1, 1, beamForm, zero);
                 // extra VFX
-                if (ShaderLibExists) {
+                if (Global.getSettings().getModManager().isModEnabled("shaderLib")) {
                     WaveDistortion wave = new WaveDistortion();
                     wave.setLocation(beamForm);
                     wave.setIntensity(5f);

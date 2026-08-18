@@ -14,7 +14,6 @@ import com.fs.starfarer.api.impl.campaign.ids.Stats;
 import com.fs.starfarer.api.util.IntervalUtil;
 import com.fs.starfarer.api.util.Misc;
 import com.fs.starfarer.combat.CombatEngine;
-import static data.scripts.NCModPlugin.ShaderLibExists;
 import data.scripts.plugins.Neutrino_LocalData;
 
 import java.awt.Color;
@@ -579,7 +578,7 @@ public class NeutrinoNeutroniumPlating extends BaseHullMod {
     }
 
     public void applyArmorGlow(ShipAPI ship, Color color, float intensity, int copies, float jitterDistMin, float jitterDistMax) {
-        if (ShaderLibExists) {
+        if (Global.getSettings().getModManager().isModEnabled("shaderLib")) {
             StandardLight light = new StandardLight(ship.getLocation(), ship.getVelocity(), new Vector2f(0, 0), ship);
             light.getColor().set(new Vector3f(color.getRed(), color.getGreen(), color.getBlue()));
             light.setLifetime(Global.getCombatEngine().getElapsedInLastFrame());

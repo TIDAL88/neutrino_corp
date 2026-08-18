@@ -1,6 +1,5 @@
 package data.scripts.weapons;
 
-import com.fs.starfarer.api.AnimationAPI;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.combat.CombatEngineAPI;
 import com.fs.starfarer.api.combat.EveryFrameWeaponEffectPlugin;

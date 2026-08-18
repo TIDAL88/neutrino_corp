@@ -5,15 +5,11 @@ import com.fs.starfarer.api.combat.BeamAPI;
 import java.awt.Color;
 import org.lwjgl.util.vector.Vector2f;
 import com.fs.starfarer.api.combat.CombatEngineAPI;
-import com.fs.starfarer.api.combat.CombatEntityAPI;
 import com.fs.starfarer.api.combat.DamageType;
-import com.fs.starfarer.api.util.Misc;
-import static data.scripts.NCModPlugin.ShaderLibExists;
 import org.dark.shaders.util.ShaderLib;
 import org.lazywizard.lazylib.FastTrig;
 import org.lazywizard.lazylib.MathUtils;
 import org.lazywizard.lazylib.VectorUtils;
-import org.lazywizard.lazylib.combat.entities.AnchoredEntity;
 
 public class Neutrino_ParticlesEffectLib {
 
@@ -30,7 +26,7 @@ public class Neutrino_ParticlesEffectLib {
             float minDuration, float maxDuration,
             Color color) {
         CombatEngineAPI engine = Global.getCombatEngine();
-        if (!ShaderLibExists||!ShaderLib.isOnScreen(loc, offScreenDist)) {
+        if (!Global.getSettings().getModManager().isModEnabled("shaderLib")||!ShaderLib.isOnScreen(loc, offScreenDist)) {
             return;
         }
         if (randomCounts) {
@@ -133,7 +129,7 @@ public class Neutrino_ParticlesEffectLib {
             float minBrightness, float maxBrightness,
             float minDuration, float maxDuration,
             Color color) {
-        if (!ShaderLibExists||!ShaderLib.isOnScreen(start, end, offScreenDist)) {
+        if (!Global.getSettings().getModManager().isModEnabled("shaderLib")||!ShaderLib.isOnScreen(start, end, offScreenDist)) {
             return;
         }
         float dist = MathUtils.getDistance(start, end);
@@ -217,7 +213,7 @@ public class Neutrino_ParticlesEffectLib {
             Color color,
             boolean sureEnd) {
         CombatEngineAPI engine = Global.getCombatEngine();
-        if (!ShaderLibExists||!ShaderLib.isOnScreen(start, end, offScreenDist)) {
+        if (!Global.getSettings().getModManager().isModEnabled("shaderLib")||!ShaderLib.isOnScreen(start, end, offScreenDist)) {
             return;
         }
         Vector2f startToEnd = Vector2f.sub(end, start, null);
@@ -281,28 +277,6 @@ public class Neutrino_ParticlesEffectLib {
             float minBrightness, float maxBrightness,
             float minDuration, float maxDuration,
             Color color) {
-        /**
-         * @param damageSource Ship that's ultimately responsible for dealing
-         * the damage of this EMP arc. Can be null.
-         * @param point starting point of the EMP arc, in absolute engine
-         * coordinates.
-         * @param pointAnchor The entity the starting point should move together
-         * with, if any.
-         * @param empTargetEntity Target of the EMP arc. If it's a ship, it will
-         * randomly pick an engine nozzle/weapon to arc to. Can also pass in a
-         * custom class implementing CombatEntityAPI to visually target the EMP
-         * at a specific location (and not do any damage).
-         * @param damageType
-         * @param damAmount
-         * @param empDamAmount
-         * @param maxRange Maximum range the arc can reach (useful for confining
-         * EMP arc targets to the area near point)
-         * @param impactSoundId Can be null.
-         * @param thickness Thickness of the arc (visual).
-         * @param fringe
-         * @param core
-         * @return
-         */
         Global.getCombatEngine().spawnEmpArcPierceShields(
                 null, 
                 end, null, null, DamageType.OTHER, radius, maxDuration, maxSpeed, null, minSpeed, color, color);

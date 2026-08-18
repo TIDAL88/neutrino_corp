@@ -1,7 +1,6 @@
 // By Deathfly
 package data.scripts.weapons;
 
-import com.fs.starfarer.api.AnimationAPI;
 import com.fs.starfarer.api.combat.CombatEngineAPI;
 import com.fs.starfarer.api.combat.EveryFrameWeaponEffectPlugin;
 import com.fs.starfarer.api.combat.ShipAPI;

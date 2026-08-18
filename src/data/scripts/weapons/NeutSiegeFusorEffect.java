@@ -2,6 +2,8 @@ package data.scripts.weapons;
 
 import com.fs.starfarer.api.Global;
 import java.awt.Color;
+
+import com.fs.starfarer.api.combat.listeners.ApplyDamageResultAPI;
 import org.lwjgl.util.vector.Vector2f;
 import com.fs.starfarer.api.combat.CombatEngineAPI;
 import com.fs.starfarer.api.combat.CombatEntityAPI;
@@ -9,8 +11,6 @@ import com.fs.starfarer.api.combat.DamageType;
 import com.fs.starfarer.api.combat.DamagingProjectileAPI;
 import com.fs.starfarer.api.combat.OnHitEffectPlugin;
 import com.fs.starfarer.api.combat.ShipAPI;
-import data.scripts.hullmods.TEM_LatticeShield;
-import data.scripts.NCModPlugin;
 import static data.scripts.util.AdvForce.applyMomentum;
 
 public class NeutSiegeFusorEffect implements OnHitEffectPlugin {
@@ -33,16 +33,16 @@ public class NeutSiegeFusorEffect implements OnHitEffectPlugin {
     public String soundName = "neutrino_siegefusor_effect"; //assign the sound we want to play
     public boolean dealsSoftFlux = false;
 
+
     @Override
-    public void onHit(DamagingProjectileAPI projectile, CombatEntityAPI target, Vector2f point, boolean shieldHit, CombatEngineAPI engine) {
-        boolean shieldHitCheck = shieldHit || (target instanceof ShipAPI && NCModPlugin.TemplarsExists && ((ShipAPI) target).getVariant().getHullMods().contains("tem_latticeshield") && TEM_LatticeShield.shieldLevel(((ShipAPI) target)) > 0f);
-        if ((float) Math.random() > 0.00f && !shieldHitCheck && target instanceof ShipAPI) {
+    public void onHit(DamagingProjectileAPI projectile, CombatEntityAPI target, Vector2f point, boolean shieldHit, ApplyDamageResultAPI applyDamageResultAPI, CombatEngineAPI engine) {
+        if ((float) Math.random() > 0.00f && !shieldHit && target instanceof ShipAPI) {
             particleVelocity1 = projectile.getVelocity();
             particleVelocity2 = projectile.getVelocity();
             particleVelocity1.scale(0.02f);
             particleVelocity2.scale(0.06f);
 
-            damageAmount += (50f * Math.random());
+            damageAmount += (float) (50f * Math.random());
             engine.applyDamage(target, point, damageAmount, DamageType.HIGH_EXPLOSIVE, empAmount, false, dealsSoftFlux, engine);
             engine.addHitParticle(point, particleVelocity1, particleSize, particleBrightness, particleDuration, particleColor);
             engine.addHitParticle(point, particleVelocity2, particleSize, particleBrightness, particleDuration, particleColor);

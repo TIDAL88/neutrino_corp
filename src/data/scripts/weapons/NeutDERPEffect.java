@@ -4,6 +4,7 @@ package data.scripts.weapons;
 
 import java.awt.Color;
 
+import com.fs.starfarer.api.combat.listeners.ApplyDamageResultAPI;
 import org.lwjgl.util.vector.Vector2f;
 
 import com.fs.starfarer.api.combat.CombatEngineAPI;
@@ -15,8 +16,8 @@ import com.fs.starfarer.combat.ai.GuidedProximityFuseAI;
 public class NeutDERPEffect implements OnHitEffectPlugin {
 
     @Override
-    public void onHit(DamagingProjectileAPI projectile, CombatEntityAPI target, Vector2f point, boolean shieldHit, CombatEngineAPI engine) {
-        GuidedProximityFuseAI AI = (GuidedProximityFuseAI) projectile.getAI();
+    public void onHit(DamagingProjectileAPI damagingProjectileAPI, CombatEntityAPI combatEntityAPI, Vector2f vector2f, boolean b, ApplyDamageResultAPI applyDamageResultAPI, CombatEngineAPI combatEngineAPI) {
+        GuidedProximityFuseAI AI = (GuidedProximityFuseAI) damagingProjectileAPI.getAI();
         AI.explode();
     }
 }

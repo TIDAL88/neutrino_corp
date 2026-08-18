@@ -5,7 +5,6 @@ import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.PluginPick;
 import com.fs.starfarer.api.campaign.CampaignPlugin;
 import com.fs.starfarer.api.combat.AutofireAIPlugin;
-import com.fs.starfarer.api.combat.DroneLauncherShipSystemAPI;
 import com.fs.starfarer.api.combat.MissileAIPlugin;
 import com.fs.starfarer.api.combat.MissileAPI;
 import com.fs.starfarer.api.combat.ShipAIPlugin;
@@ -40,57 +39,15 @@ public class NCModPlugin extends BaseModPlugin {
     private static final String neutrino_adv_torpedo_payload1_ID = "neutrino_adv_torpedo_payload1";
     private static final String neutrino_adv_torpedo_payload2_ID = "neutrino_adv_torpedo_payload2";
     private static final String neutrino_adv_torpedo_payload3_ID = "neutrino_adv_torpedo_payload3";
+    
 
-    public static final boolean SSPExists;
-    public static final boolean TemplarsExists;
-    public static final boolean ExerlinExists;
-    public static final boolean ShaderLibExists;
-    static{
-        boolean tem;
-        try {
-            Global.getSettings().getScriptClassLoader().loadClass("org.dark.shaders.util.ShaderLib");  
-            tem = true;
-        } catch (ClassNotFoundException ex) {
-            tem = false;
-        }
-        ShaderLibExists = tem;
-        try {
-            Global.getSettings().getScriptClassLoader().loadClass("data.scripts.TEMModPlugin");
-            tem = true;
-        } catch (ClassNotFoundException ex) {
-            tem = false;
-        }
-        TemplarsExists = tem;
-        try {
-            Global.getSettings().getScriptClassLoader().loadClass("data.scripts.SSPModPlugin");
-            tem = true;
-        } catch (ClassNotFoundException ex) {
-            tem = false;
-        }
-        SSPExists = tem;
-        try {
-            Global.getSettings().getScriptClassLoader().loadClass("exerelin.campaign.SectorManager");
-            tem = true;
-        } catch (ClassNotFoundException ex) {
-            tem = false;
-        }
-        ExerlinExists = tem;
-    }
     
     @Override
     public void onApplicationLoad() {
-  
-        try {
-            Global.getSettings().getScriptClassLoader().loadClass("org.lazywizard.lazylib.LazyLib");
-        } catch (ClassNotFoundException ex){
-            throw new RuntimeException("Neutrino requires LazyLib!");
+        if (Global.getSettings().getModManager().isModEnabled("shaderLib")) {
+            ShaderLib.init();
+            LightData.readLightDataCSV("data/lights/neutrino_bling.csv");
         }
-        ShaderLib.init();
-        LightData.readLightDataCSV("data/lights/neutrino_bling.csv");
-//        setUnlockBySkill("neutrino_omegaupgrade", "computer_systems", 10);
-//        setUnlockBySkill("neutrino_hightarqueturretmotor", "mechanical_engineering", 5);
-//        setUnlockBySkill("neutrino_broadsideShield", "applied_physics", 5);
-        
     }
 
     @Override

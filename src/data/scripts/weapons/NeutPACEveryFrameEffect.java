@@ -8,8 +8,7 @@ import com.fs.starfarer.api.combat.WeaponAPI;
 
 public class NeutPACEveryFrameEffect implements EveryFrameWeaponEffectPlugin {
 
-    private final float validFrames = 16;
-//    private final float animeMAXchargelvl = 0.8f;
+    //    private final float animeMAXchargelvl = 0.8f;
     private float chargeLevel = 0;
 
     @Override
@@ -28,6 +27,7 @@ public class NeutPACEveryFrameEffect implements EveryFrameWeaponEffectPlugin {
         } else {
             if (weapon.getChargeLevel() >= chargeLevel) {
                 chargeLevel = weapon.getChargeLevel();
+                float validFrames = 16;
                 if (anime.getFrame() < validFrames) {
                     anime.setFrameRate(12);
                 } else {

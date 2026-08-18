@@ -2,6 +2,8 @@ package data.scripts.weapons;
 
 import com.fs.starfarer.api.Global;
 import java.awt.Color;
+
+import com.fs.starfarer.api.combat.listeners.ApplyDamageResultAPI;
 import org.lwjgl.util.vector.Vector2f;
 import com.fs.starfarer.api.combat.CombatEngineAPI;
 import com.fs.starfarer.api.combat.CombatEntityAPI;
@@ -10,18 +12,14 @@ import com.fs.starfarer.api.combat.DamagingProjectileAPI;
 import com.fs.starfarer.api.combat.OnHitEffectPlugin;
 import com.fs.starfarer.api.combat.ShipAPI;
 import com.fs.starfarer.api.loading.ProjectileSpawnType;
-import data.scripts.hullmods.TEM_LatticeShield;
-import data.scripts.NCModPlugin;
-import static data.scripts.NCModPlugin.ShaderLibExists;
 import org.dark.shaders.distortion.DistortionShader;
 import org.dark.shaders.distortion.RippleDistortion;
 import static data.scripts.util.AdvForce.applyMomentum;
 import data.scripts.util.Neutrino_CollisionUtilsEX;
-import java.util.Iterator;
 import java.util.List;
 import org.lazywizard.lazylib.MathUtils;
 import org.lazywizard.lazylib.combat.CombatUtils;
-//import org.dark.shaders.distortion.WaveDistortion;
+
 
 public class NeutGravitonEffect implements OnHitEffectPlugin {
 
@@ -44,9 +42,7 @@ public class NeutGravitonEffect implements OnHitEffectPlugin {
     public boolean dealsSoftFlux = false;
 
     @Override
-    public void onHit(DamagingProjectileAPI projectile, CombatEntityAPI target, Vector2f point, boolean shieldHit, CombatEngineAPI engine) {
-//        boolean shieldHitCheck = shieldHit || (target instanceof ShipAPI && NCModPlugin.TemplarsExists && ((ShipAPI) target).getVariant().getHullMods().contains("tem_latticeshield") && TEM_LatticeShield.shieldLevel(((ShipAPI) target)) > 0f);
-        //VFX
+    public void onHit(DamagingProjectileAPI projectile, CombatEntityAPI target, Vector2f point, boolean b, ApplyDamageResultAPI applyDamageResultAPI, CombatEngineAPI engine) {
         particleVelocity1 = projectile.getVelocity();
         particleVelocity2 = projectile.getVelocity();
         particleVelocity1.scale(0.02f);
@@ -70,7 +66,7 @@ public class NeutGravitonEffect implements OnHitEffectPlugin {
         engine.addHitParticle(point, particleVelocity2, particleSize, particleBrightness, particleDuration, particleColor);
         engine.spawnExplosion(point, particleVelocity1, particleColor, explosionSize, explosionDuration);
         engine.spawnExplosion(point, particleVelocity2, particleColor, explosionSize2, explosionDuration2);
-        if (ShaderLibExists) {
+        if (Global.getSettings().getModManager().isModEnabled("shaderLib")) {
             RippleDistortion Rip = new RippleDistortion();
             Rip.setLocation(point);
             Rip.setIntensity(200f);
@@ -89,27 +85,24 @@ public class NeutGravitonEffect implements OnHitEffectPlugin {
         if (target instanceof ShipAPI) {
             ((ShipAPI) target).getFluxTracker().beginOverloadWithTotalBaseDuration(MathUtils.getRandomNumberInRange(4, 6));
         }
-      List<CombatEntityAPI> entitis = CombatUtils.getEntitiesWithinRange(point, 475);
-        for (Iterator<CombatEntityAPI> iterator = entitis.iterator(); iterator.hasNext();) {
-            CombatEntityAPI e = iterator.next();
+        List<CombatEntityAPI> entitis = CombatUtils.getEntitiesWithinRange(point, 475);
+        for (CombatEntityAPI e : entitis) {
             Vector2f hitPoint;
-            if(e instanceof DamagingProjectileAPI){
-                DamagingProjectileAPI p = (DamagingProjectileAPI)e;
-                if ("neutrino_graviton".equals(p.getProjectileSpecId()) || !ProjectileSpawnType.MISSILE.equals(p.getSpawnType())){
+            if (e instanceof DamagingProjectileAPI p) {
+                if ("neutrino_graviton".equals(p.getProjectileSpecId()) || !ProjectileSpawnType.MISSILE.equals(p.getSpawnType())) {
                     continue;
                 }
             }
-            if (e instanceof ShipAPI) {
-                
-                ShipAPI hitShip = (ShipAPI) e;
-                if(hitShip.isFighter()||hitShip.isPhased()){
+            if (e instanceof ShipAPI hitShip) {
+
+                if (hitShip.isFighter() || hitShip.isPhased()) {
                     continue;
                 }
                 hitPoint = Neutrino_CollisionUtilsEX.getShipCollisionPoint(point, e.getLocation(), hitShip);
                 for (int i = 0; i < 5; i++) {
-                     engine.spawnEmpArcPierceShields(
+                    engine.spawnEmpArcPierceShields(
                             projectile.getSource(),
-                            projectile.getLocation() ,
+                            projectile.getLocation(),
                             hitShip,
                             hitShip,
                             DamageType.KINETIC,

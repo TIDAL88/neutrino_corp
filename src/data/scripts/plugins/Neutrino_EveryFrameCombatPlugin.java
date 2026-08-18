@@ -23,7 +23,7 @@ import com.fs.starfarer.combat.entities.Missile;
 import com.fs.starfarer.combat.entities.MovingRay;
 
 import data.hullmods.NeutrinoNeutroniumPlating.PowerAromr;
-import static data.scripts.NCModPlugin.ShaderLibExists;
+
 import static data.scripts.plugins.Neutrino_CombatPluginCreator.createDERPOnRemovePlugin;
 import static data.scripts.util.AdvForce.applyMomentum;
 import data.scripts.util.Neutrino_CollisionUtilsEX;
@@ -40,6 +40,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import org.jetbrains.annotations.NotNull;
 import org.lwjgl.util.vector.Vector2f;
 
 import org.lazywizard.lazylib.combat.entities.AnchoredEntity;
@@ -217,7 +218,7 @@ public class Neutrino_EveryFrameCombatPlugin extends BaseEveryFrameCombatPlugin 
                                         missile.getVelocity().set(MathUtils.getPointOnCircumference(zero, missile.getVelocity().length(), VectorUtils.getAngle(missile.getLocation(), target.getLocation()) + MathUtils.getRandomNumberInRange(-15, 15)));
                                     }
                                     missile.fadeOutThenIn(0.2f);
-                                    if (ShaderLibExists) {
+                                    if (Global.getSettings().getModManager().isModEnabled("shaderLib")) {
                                         WaveDistortion wave = new WaveDistortion();
                                         wave.setLocation(missile.getLocation());
                                         wave.setIntensity(50f);
@@ -248,17 +249,8 @@ public class Neutrino_EveryFrameCombatPlugin extends BaseEveryFrameCombatPlugin 
                                     GuidedProximityFuseAI AI = (GuidedProximityFuseAI) missile.getAI();
                                     DamagingProjectileAPI explosion = AI.explode();
 
-                                    if (ShaderLibExists) {
-                                        RippleDistortion Rip = new RippleDistortion();
-                                        Rip.setLocation(se.getLocation());
-                                        Rip.setIntensity(100f);
-                                        Rip.setLifetime(1f);
-                                        Rip.setFrameRate(120);
-                                        Rip.setCurrentFrame(0);
-                                        Rip.setSize(175f);
-                                        Rip.fadeInSize(0.15f);
-                                        Rip.fadeOutIntensity(0.5f);
-                                        Rip.flip(true);
+                                    if (Global.getSettings().getModManager().isModEnabled("shaderLib")) {
+                                        RippleDistortion Rip = getRippleDistortion(se);
                                         DistortionShader.addDistortion(Rip);
                                     }
                                     //SFX
@@ -531,6 +523,21 @@ public class Neutrino_EveryFrameCombatPlugin extends BaseEveryFrameCombatPlugin 
         }
     }
 
+    @NotNull
+    private static RippleDistortion getRippleDistortion(SimpleEntity se) {
+        RippleDistortion Rip = new RippleDistortion();
+        Rip.setLocation(se.getLocation());
+        Rip.setIntensity(100f);
+        Rip.setLifetime(1f);
+        Rip.setFrameRate(120);
+        Rip.setCurrentFrame(0);
+        Rip.setSize(175f);
+        Rip.fadeInSize(0.15f);
+        Rip.fadeOutIntensity(0.5f);
+        Rip.flip(true);
+        return Rip;
+    }
+
     private void phaseMissileEffect(DamagingProjectileAPI proj, float amount) {
         float elapsed = proj.getElapsed();
         Vector2f loc = proj.getLocation();
@@ -547,7 +554,7 @@ public class Neutrino_EveryFrameCombatPlugin extends BaseEveryFrameCombatPlugin 
                     float dis = proj.getSource().getCollisionRadius() + MathUtils.getRandomNumberInRange(50f, 200f);
                     Vector2f mov = MathUtils.getRandomPointOnCircumference(null, dis);
                     Vector2f.add(loc, mov, loc);
-                    if (ShaderLibExists) {
+                    if (Global.getSettings().getModManager().isModEnabled("shaderLib")) {
                         WaveDistortion wave = new WaveDistortion();
                         wave.setLocation(loc);
                         wave.setIntensity(25f);
@@ -571,7 +578,7 @@ public class Neutrino_EveryFrameCombatPlugin extends BaseEveryFrameCombatPlugin 
             case neutrino_phase_missile_payload_ID:
                 if (elapsed < amount) {
                     Vector2f zero = new Vector2f();
-                    if (ShaderLibExists) {
+                    if (Global.getSettings().getModManager().isModEnabled("shaderLib")) {
                         WaveDistortion wave = new WaveDistortion();
                         wave.setLocation(loc);
                         wave.setIntensity(50f);

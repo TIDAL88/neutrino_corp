@@ -1,7 +1,6 @@
 //by Deathfly
 package data.scripts.weapons;
 
-import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.combat.BeamAPI;
 import com.fs.starfarer.api.combat.BeamEffectPlugin;
 import com.fs.starfarer.api.combat.CombatAsteroidAPI;
@@ -12,11 +11,6 @@ import com.fs.starfarer.api.combat.DamageType;
 import com.fs.starfarer.api.combat.ShipAPI;
 import com.fs.starfarer.api.combat.ShipCommand;
 import com.fs.starfarer.combat.entities.BeamWeaponRay;
-import data.scripts.plugins.Neutrino_LocalData;
-import java.awt.Color;
-import org.lazywizard.lazylib.MathUtils;
-import org.lazywizard.lazylib.VectorUtils;
-import org.lwjgl.util.vector.Vector2f;
 
 public class NeutPACBeamEffect implements BeamEffectPlugin {
 
@@ -49,8 +43,7 @@ public class NeutPACBeamEffect implements BeamEffectPlugin {
             CombatEntityAPI target = beam.getDamageTarget();
             if (target instanceof CombatAsteroidAPI) {
                 engine.applyDamage(target, beam.getTo(), 5000 * amount, DamageType.OTHER, 0, false, false, beam.getSource());
-            } else if (target instanceof ShipAPI && beam.didDamageThisFrame()) {
-                ShipAPI targetShip = (ShipAPI)target;                
+            } else if (target instanceof ShipAPI targetShip && beam.didDamageThisFrame()) {
                 targetShip.getMutableStats().getEffectiveArmorBonus().modifyMult("NeutPACBeamEffect", 0);
                 targetShip.getMutableStats().getArmorDamageTakenMult().modifyMult("NeutPACBeamEffect", 5);
                 engine.applyDamage(target, beam.getTo(), beam.getDamage().getDamage()*0.025f *beam.getHitGlowBrightness(), DamageType.OTHER, 0, false, false, beam.getSource());

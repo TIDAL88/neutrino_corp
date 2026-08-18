@@ -8,12 +8,11 @@ import com.fs.starfarer.api.combat.BaseEveryFrameCombatPlugin;
 import com.fs.starfarer.api.combat.BeamAPI;
 import com.fs.starfarer.api.combat.CombatEngineAPI;
 import com.fs.starfarer.api.combat.ViewportAPI;
-import com.fs.starfarer.api.input.InputEventAPI;
 import com.fs.starfarer.combat.CombatEngine;
 import com.fs.starfarer.renderers.fx.DetailedSmokeParticle;
-import static data.scripts.NCModPlugin.ShaderLibExists;
+
 import java.awt.Color;
-import java.util.List;
+
 import org.dark.shaders.util.ShaderLib;
 import org.lazywizard.lazylib.FastTrig;
 import org.lazywizard.lazylib.MathUtils;
@@ -67,12 +66,7 @@ public class Neutrino_ExtraParticlePlugin extends BaseEveryFrameCombatPlugin {
         ExtraParticleGroup.add(smoothparticle);
     }
 
-    /**
-     * Opaque smoke particle.
-     *
-     * @param brightness from 0 to 1
-     * @param duration in seconds
-     */
+
     public static void addExtraSmokeParticle(Vector2f loc, Vector2f vel, float size, float opacity, float duration, Color color) {
         DetailedSmokeParticle detailedsmokeparticle = new DetailedSmokeParticle(color, size, size * 1.25F);
         detailedsmokeparticle.setAngle((float) Math.random() * 360F);
@@ -94,7 +88,7 @@ public class Neutrino_ExtraParticlePlugin extends BaseEveryFrameCombatPlugin {
             float minDuration, float maxDuration,
             Color color) {
 //        CombatEngineAPI engine = Global.getCombatEngine();
-        if (!ShaderLibExists||!ShaderLib.isOnScreen(loc, offScreenDist)) {
+        if (!Global.getSettings().getModManager().isModEnabled("shaderLib") ||!ShaderLib.isOnScreen(loc, offScreenDist)) {
             return;
         }
         if (randomCounts) {
@@ -215,7 +209,7 @@ public class Neutrino_ExtraParticlePlugin extends BaseEveryFrameCombatPlugin {
             float minBrightness, float maxBrightness,
             float minDuration, float maxDuration,
             Color color) {
-        if (!ShaderLibExists||!ShaderLib.isOnScreen(start, end, offScreenDist)) {
+        if (!Global.getSettings().getModManager().isModEnabled("shaderLib")||!ShaderLib.isOnScreen(start, end, offScreenDist)) {
             return;
         }
         float dist = MathUtils.getDistance(start, end);
@@ -299,7 +293,7 @@ public class Neutrino_ExtraParticlePlugin extends BaseEveryFrameCombatPlugin {
             Color color,
             boolean sureEnd) {
         CombatEngineAPI engine = Global.getCombatEngine();
-        if (!ShaderLibExists||!ShaderLib.isOnScreen(start, end, offScreenDist)) {
+        if (!Global.getSettings().getModManager().isModEnabled("shaderLib")||!ShaderLib.isOnScreen(start, end, offScreenDist)) {
             return;
         }
         Vector2f startToEnd = Vector2f.sub(end, start, null);

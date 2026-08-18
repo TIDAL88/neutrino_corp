@@ -1,10 +1,20 @@
 {
   "id":"Neutrino", # internal id
 	"name":"Neutrino Corporation", # displayed to the player
-	"author":"Flashfrozen and Deathfly",
-	"version":"1.86-RC3",
+	"author":"Flashfrozen and Deathfly, maintained by TIDAL",
+	"version":"1.86-RC8",
 	"description":"Yet another megacorporation, or said part of it R&D department, stuck in this sector after the Collapse.",
-	"gameVersion":"0.9.1a",
+	"gameVersion":"0.98",
 	"modPlugin":"data.scripts.NCModPlugin",
-	"jars": ["jars/NeutrinoJAR.jar"]
+	"jars": ["jars/NeutrinoJAR.jar"],
+ "dependencies": [
+    {
+      "id": "lw_lazylib",
+      "name": "LazyLib"
+    },
+    {
+      "id": "shaderLib",
+      "name": "GraphicsLib"
+    }
+  ]
 }

@@ -2,10 +2,7 @@
 // hope this will work properly.
 package data.scripts.weapons;
 
-import com.fs.starfarer.api.Global;
-import com.fs.starfarer.api.combat.CombatAssignmentType;
 import com.fs.starfarer.api.combat.CombatEngineAPI;
-import com.fs.starfarer.api.combat.CombatFleetManagerAPI;
 import com.fs.starfarer.api.combat.EveryFrameWeaponEffectPlugin;
 import com.fs.starfarer.api.combat.ShipAPI;
 import com.fs.starfarer.api.combat.ShipwideAIFlags;
@@ -29,12 +26,4 @@ public class NeutVentBlocker implements EveryFrameWeaponEffectPlugin {
         }
     }
 
-    private boolean isCapturing(ShipAPI ship) {
-        CombatFleetManagerAPI.AssignmentInfo aInfo = Global.getCombatEngine().getFleetManager(ship.getOwner()).getTaskManager(ship.isAlly()).getAssignmentFor(ship);
-        if (aInfo != null) {
-            return aInfo.getType() == CombatAssignmentType.CAPTURE;
-        } else {
-            return false;
-        }
-    }
 }
