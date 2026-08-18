@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="NeutrinoJAR">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/jars/NeutrinoJAR.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

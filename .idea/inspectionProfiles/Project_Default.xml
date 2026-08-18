@@ -1,0 +1,15 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="CascadeIf" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
+    <inspection_tool class="ExpressionComparedToItself" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoreSideEffectConditions" value="true" />
+    </inspection_tool>
+    <inspection_tool class="ExtractMethodRecommender" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="minLength" value="683" />
+    </inspection_tool>
+    <inspection_tool class="MathClampMigration" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="braveMode" value="false" />
+    </inspection_tool>
+  </profile>
+</component>
