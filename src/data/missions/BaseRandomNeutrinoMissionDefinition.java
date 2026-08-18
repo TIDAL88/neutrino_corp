@@ -1,8 +1,9 @@
 // by Deathfly
-// Credit to MesoTroniK, mod form his code.
+// Credit to MesoTroniK, mod from his code.
 package data.missions;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,12 +11,13 @@ import java.util.Random;
 import com.fs.starfarer.api.Global;
 import com.fs.starfarer.api.campaign.CampaignFleetAPI;
 import com.fs.starfarer.api.campaign.FactionAPI;
-import com.fs.starfarer.api.campaign.econ.MarketAPI;
+import com.fs.starfarer.api.combat.ShipAPI.HullSize;
+import com.fs.starfarer.api.combat.ShipHullSpecAPI;
+import com.fs.starfarer.api.combat.ShipVariantAPI;
 import com.fs.starfarer.api.fleet.FleetGoal;
 import com.fs.starfarer.api.fleet.FleetMemberAPI;
 import com.fs.starfarer.api.fleet.FleetMemberType;
 import com.fs.starfarer.api.impl.campaign.fleets.FleetFactoryV3;
-import com.fs.starfarer.api.impl.campaign.fleets.FleetParams;
 import com.fs.starfarer.api.impl.campaign.fleets.FleetParamsV3;
 import com.fs.starfarer.api.impl.campaign.ids.Factions;
 import com.fs.starfarer.api.impl.campaign.ids.FleetTypes;
@@ -27,30 +29,64 @@ import org.lwjgl.util.vector.Vector2f;
 
 public class BaseRandomNeutrinoMissionDefinition implements MissionDefinitionPlugin {
 
-    // Types of objectives that may be randomly used
-    private static final String[] OBJECTIVE_TYPES
-            = {
-                "sensor_array", "nav_buoy", "comm_relay"
-            };
-    private static final Map<String, Float> QUALITY_FACTORS = new HashMap<>(10);
+    private static final String[] OBJECTIVE_TYPES = {
+            "sensor_array", "nav_buoy", "comm_relay"
+    };
+
+    private static final float TARGET_DP = 240f;
+
     private FactionAPI enemy;
-    private boolean flagshipChosen = false;
     private FactionAPI player;
     private final Random rand = new Random();
     private boolean fullRandom = false;
+
+    private static final Map<String, Float> QUALITY_FACTORS = new HashMap<>(10);
 
     static {
         QUALITY_FACTORS.put("neutrinocorp", 0.85f);
         QUALITY_FACTORS.put(Factions.DIKTAT, 0.5f);
         QUALITY_FACTORS.put(Factions.HEGEMONY, 0.5f);
         QUALITY_FACTORS.put(Factions.INDEPENDENT, 0.5f);
-//        QUALITY_FACTORS.put(Factions.KOL, 0.5f);
-//        QUALITY_FACTORS.put(Factions.LIONS_GUARD, 0.75f);
         QUALITY_FACTORS.put(Factions.LUDDIC_CHURCH, 0.25f);
         QUALITY_FACTORS.put(Factions.LUDDIC_PATH, 0f);
         QUALITY_FACTORS.put(Factions.PIRATES, 0f);
         QUALITY_FACTORS.put(Factions.TRITACHYON, 0.85f);
         QUALITY_FACTORS.put(Factions.PERSEAN, 0.5f);
+    }
+
+    private boolean isMilitaryCombatShip(ShipVariantAPI variant) {
+        if (variant == null || variant.isFighter() || variant.isStation()) {
+            return false;
+        }
+
+        String variantId = variant.getHullVariantId();
+        if (variantId != null) {
+            String vLower = variantId.toLowerCase();
+            if (vLower.contains("unsung") || vLower.contains("neutrino_rm-r") || vLower.contains("neutrino_hammer")) {
+                return false;
+            }
+        }
+
+        ShipHullSpecAPI hullSpec = variant.getHullSpec();
+        if (hullSpec == null) {
+            return false;
+        }
+
+
+        if (hullSpec.getHints().contains(ShipHullSpecAPI.ShipTypeHints.CIVILIAN)) {
+            return false;
+        }
+        if (hullSpec.getHints() != null && hullSpec.getHints().contains(ShipHullSpecAPI.ShipTypeHints.CIVILIAN)) {
+            return false;
+        }
+
+        String hullId = hullSpec.getHullId();
+        if (hullId != null) {
+            String hLower = hullId.toLowerCase();
+            return !hLower.contains("unsung") && !hLower.contains("neutrino_rm-r") && !hLower.contains("neutrino_hammer");
+        }
+
+        return true;
     }
 
     @Override
@@ -65,54 +101,36 @@ public class BaseRandomNeutrinoMissionDefinition implements MissionDefinitionPlu
         api.setFleetTagline(FleetSide.PLAYER, player.getDisplayNameLong() + " forces");
         api.setFleetTagline(FleetSide.ENEMY, enemy.getDisplayNameLong() + " forces");
 
-        // Fleet size randomization
-        int size = MathUtils.getRandomNumberInRange(1, 3);
-//        int size = 30 + (int) ((float) Math.random() * 170);
-//        float difficulty = 0.7f + rand.nextFloat() * 0.3f;
+        int size = 3;
 
-        // Actual fleet generation call
-//        int playerFP = generateFleet(player, api, FleetSide.PLAYER, (int) (size * difficulty), QUALITY_FACTORS.get(player.getId()) == null ? rand.nextFloat() : QUALITY_FACTORS.get(player.getId()));
-        int playerFP = generateFleet(player, api, FleetSide.PLAYER, size, QUALITY_FACTORS.get(player.getId()) == null ? rand.nextFloat() : QUALITY_FACTORS.get(player.getId()));
-        int enemyFP = generateFleet(enemy, api, FleetSide.ENEMY, size, QUALITY_FACTORS.get(enemy.getId()) == null ? rand.nextFloat() : QUALITY_FACTORS.get(enemy.getId()));
+        int playerPoints = generateFleetForSide(api, FleetSide.PLAYER, player, size);
+        int enemyPoints = generateFleetForSide(api, FleetSide.ENEMY, enemy, size);
 
-        // Set up the map
-        float width = 13000f + 13000f * (size / 200);
-        float height = 13000f + 13000f * (size / 200);
+        float width = 18000f;
+        float height = 18000f;
         api.initMap(-width / 2f, width / 2f, -height / 2f, height / 2f);
 
         float minX = -width / 2;
         float minY = -height / 2;
 
-        int objectiveCount = (int) Math.floor(size / 35f);
-
+        int objectiveCount = 6;
         while (objectiveCount > 0) {
             String type = OBJECTIVE_TYPES[rand.nextInt(3)];
-
-            if (objectiveCount == 1) {
-                api.addObjective(0, 0, type);
-                objectiveCount -= 1;
-            } else {
-                float theta = (float) (Math.random() * Math.PI);
-                double radius = Math.min(width, height);
-                radius = radius * 0.1 + radius * 0.3 * Math.random();
-                int x = (int) (Math.cos(theta) * radius);
-                int y = (int) (Math.sin(theta) * radius);
-                api.addObjective(x, -y, type);
-                api.addObjective(-x, y, type);
-                objectiveCount -= 2;
-            }
+            float theta = (float) (Math.random() * Math.PI);
+            double radius = width;
+            radius = radius * 0.15 + radius * 0.3 * Math.random();
+            int x = (int) (Math.cos(theta) * radius);
+            int y = (int) (Math.sin(theta) * radius);
+            api.addObjective(x, -y, type);
+            api.addObjective(-x, y, type);
+            objectiveCount -= 2;
         }
 
-        // Show the factions versus and their FP
-        api.addBriefingItem(player.getDisplayName() + "  (" + playerFP + ")   vs.  " + enemy.getDisplayName() + "  (" + enemyFP + ")");
+        api.addBriefingItem(player.getDisplayName() + "  (" + playerPoints + " DP)   vs.  " + enemy.getDisplayName() + "  (" + enemyPoints + " DP)");
 
-        // Chance of generating a nebula
         float nebulaChance = MathUtils.getRandomNumberInRange(0, 100);
-
-        // So basically half the time (if less than 50 out of 100)
         if (nebulaChance < 50) {
-            // Do regular nebula generation
-            float nebulaCount = 10 + (float) Math.random() * 30;
+            float nebulaCount = 15 + (float) Math.random() * 25;
             float nebulaSize = (float) Math.random();
 
             for (int i = 0; i < nebulaCount; i++) {
@@ -121,45 +139,31 @@ public class BaseRandomNeutrinoMissionDefinition implements MissionDefinitionPlu
                 float nebulaRadius = (400f + (float) Math.random() * 1600f) * nebulaSize;
                 api.addNebula(x, y, nebulaRadius);
             }
-
             api.addBriefingItem("Nebulosity:  " + (int) (((nebulaCount * nebulaSize) / 40f) * 100) + "%");
-
         } else {
-            // Mention that there is no nebula, this line could be commented out if you don't want this line item added
             api.addBriefingItem("Nebulosity: N/A");
         }
 
-        // Asteroid generation random chance
         float asteroidChance = MathUtils.getRandomNumberInRange(0, 100);
-
-        // If chance is less than 50
         if (asteroidChance < 50) {
-
-            // Do regular asteroid generation
-            // Minimum asteroid speed between 15 and 50
             int minAsteroidSpeed = MathUtils.getRandomNumberInRange(15, 50);
+            int asteroidCount = 120 + (int) (100 * Math.pow(Math.random(), 2));
 
-            // Asteroid count
-            int asteroidCount = size + (int) (size * 4 * Math.pow(Math.random(), 2));
-
-            // Add the asteroid field
             api.addAsteroidField(
-                    minX + width * 0.5f, // X
-                    minY + height * 0.5f, // Y
-                    rand.nextInt(90) - 45 + (rand.nextInt() % 2) * 180, // Angle
-                    100 + (int) (Math.random() * height / 2), // Width
-                    minAsteroidSpeed, // Min speed
-                    minAsteroidSpeed * 1.1f, // Max speed
-                    asteroidCount); // Count
+                    minX + width * 0.5f,
+                    minY + height * 0.5f,
+                    rand.nextInt(90) - 45 + (rand.nextInt() % 2) * 180,
+                    100 + (int) (Math.random() * height / 2),
+                    minAsteroidSpeed,
+                    minAsteroidSpeed * 1.1f,
+                    asteroidCount);
 
             api.addBriefingItem("Asteroid Density:  " + (int) ((asteroidCount / 1000f) * 100) + "%");
             api.addBriefingItem("Asteroid Speed:  " + minAsteroidSpeed);
         } else {
-            // If not asteroid field, specify as N/A, you can comment this out
             api.addBriefingItem("Asteroid Density: N/A");
             api.addBriefingItem("Asteroid Speed: N/A");
         }
-
     }
 
     protected boolean chooseFactions(String playerFactionId, String enemyFactionId, boolean fullRandom, int i) {
@@ -167,104 +171,271 @@ public class BaseRandomNeutrinoMissionDefinition implements MissionDefinitionPlu
     }
 
     protected boolean chooseFactions(String playerFactionId, String enemyFactionId, boolean fullRandom, int i, int j) {
-        player = Global.getSector().getFaction(playerFactionId);
-        enemy = Global.getSector().getFaction(enemyFactionId);
         this.fullRandom = fullRandom;
         boolean outOfBorder = false;
         List<FactionAPI> acceptableFactions = new ArrayList<>(40);
+
+        if (playerFactionId != null && Global.getSector() != null) {
+            player = Global.getSector().getFaction(playerFactionId);
+        }
+        if (enemyFactionId != null && Global.getSector() != null) {
+            enemy = Global.getSector().getFaction(enemyFactionId);
+        }
+
         if (!fullRandom) {
-            // Instead of adding *all* factions, we are adding the vanilla factions only
-            acceptableFactions.add(Global.getSector().getFaction(Factions.DIKTAT));
-            acceptableFactions.add(Global.getSector().getFaction(Factions.HEGEMONY));
-            acceptableFactions.add(Global.getSector().getFaction(Factions.INDEPENDENT));
-//            acceptableFactions.add(Global.getSector().getFaction(Factions.KOL));
-//            acceptableFactions.add(Global.getSector().getFaction(Factions.LIONS_GUARD));
-            acceptableFactions.add(Global.getSector().getFaction(Factions.LUDDIC_CHURCH));
-            acceptableFactions.add(Global.getSector().getFaction(Factions.LUDDIC_PATH));
-            acceptableFactions.add(Global.getSector().getFaction(Factions.PIRATES));
-            acceptableFactions.add(Global.getSector().getFaction(Factions.TRITACHYON));
-            acceptableFactions.add(Global.getSector().getFaction(Factions.PERSEAN));
+            if (Global.getSector() != null) {
+                acceptableFactions.add(Global.getSector().getFaction(Factions.DIKTAT));
+                acceptableFactions.add(Global.getSector().getFaction(Factions.HEGEMONY));
+                acceptableFactions.add(Global.getSector().getFaction(Factions.INDEPENDENT));
+                acceptableFactions.add(Global.getSector().getFaction(Factions.LUDDIC_CHURCH));
+                acceptableFactions.add(Global.getSector().getFaction(Factions.LUDDIC_PATH));
+                acceptableFactions.add(Global.getSector().getFaction(Factions.PIRATES));
+                acceptableFactions.add(Global.getSector().getFaction(Factions.TRITACHYON));
+                acceptableFactions.add(Global.getSector().getFaction(Factions.PERSEAN));
+            }
         } else {
-            // or not?
-            acceptableFactions.addAll(Global.getSector().getAllFactions());
-            // and opps...
-            for (FactionAPI faction : Global.getSector().getAllFactions()) {
-                if (!faction.isShowInIntelTab() || faction.isPlayerFaction()) {
-                    acceptableFactions.remove(faction);
+            if (Global.getSector() != null) {
+                acceptableFactions.addAll(Global.getSector().getAllFactions());
+            }
+            List<FactionAPI> toRemove = new ArrayList<>();
+            for (FactionAPI faction : acceptableFactions) {
+                if (faction == null || !faction.isShowInIntelTab() || faction.isPlayerFaction()) {
+                    toRemove.add(faction);
                 }
             }
-//            acceptableFactions.remove(Global.getSector().getFaction(Factions.PLAYER));
-//            acceptableFactions.remove(Global.getSector().getFaction(Factions.NEUTRAL));
-//            acceptableFactions.remove(Global.getSector().getFaction(Factions.KOL));
+            acceptableFactions.removeAll(toRemove);
         }
-        if (i > acceptableFactions.size()) {
-            i = 0;
-            outOfBorder = true;
-        }
-        if (j > acceptableFactions.size()) {
-            j = 0;
-            outOfBorder = true;
-        }
-        // If the player faction is not null, and is not specified a parameter in the input, choose from one of the acceptable factions
-        player = player != null ? player : acceptableFactions.get(i);
 
+        if (acceptableFactions.isEmpty()) {
+            if (player == null) player = Global.getSector().getFaction("neutrinocorp");
+            if (enemy == null) enemy = Global.getSector().getFaction(Factions.HEGEMONY);
+            return true;
+        }
+
+        if (i >= acceptableFactions.size()) {
+            i = i % acceptableFactions.size();
+            outOfBorder = true;
+        }
+        if (j >= acceptableFactions.size()) {
+            j = j % acceptableFactions.size();
+            outOfBorder = true;
+        }
+
+        player = player != null ? player : acceptableFactions.get(Math.abs(i) % acceptableFactions.size());
         acceptableFactions.remove(player);
 
-        enemy = enemy != null ? enemy : acceptableFactions.get(j);
+        if (!acceptableFactions.isEmpty()) {
+            enemy = enemy != null ? enemy : acceptableFactions.get(Math.abs(j) % acceptableFactions.size());
+        } else {
+            enemy = Global.getSector().getFaction(Factions.HEGEMONY);
+        }
+
         return outOfBorder;
     }
 
-    // Generate a fleet from the campaign fleet generator
-    int generateFleet(FactionAPI faction, MissionDefinitionAPI api, FleetSide side, int size, float qf) {
-
-        float combat = 0f;
-        float tanker = 0f;
-        float freighter = 0f;
-        String fleetType = FleetTypes.PATROL_SMALL;
-        switch (size) {
-            case 1:
-                combat = Math.round(50f + (float) Math.random() * 10f);
-                fleetType = FleetTypes.PATROL_SMALL;
-                break;
-            case 2:
-                combat = Math.round(100f + (float) Math.random() * 20f);
-                fleetType = FleetTypes.PATROL_MEDIUM;
-                break;
-            case 3:
-                combat = Math.round(200f + (float) Math.random() * 50f);
-                fleetType = FleetTypes.PATROL_LARGE;
-                tanker = 2f;
-                freighter = 2f;
-                break;
-            default:
+    private int generateFleetForSide(MissionDefinitionAPI api, FleetSide side, FactionAPI faction, int size) {
+        if (faction != null && "neutrinocorp".equals(faction.getId())) {
+            return generateNeutrinoFleetDynamic(api, side);
+        } else {
+            float qf = QUALITY_FACTORS.get(faction.getId()) == null ? rand.nextFloat() : QUALITY_FACTORS.get(faction.getId());
+            return generateStandardFactionFleetV3(faction, api, side, qf);
         }
-        combat *= 1.25f;
+    }
+    private int generateNeutrinoFleetDynamic(MissionDefinitionAPI api, FleetSide side) {
+        float currentDP = 0f;
+        boolean flagshipSet = false;
+
+        Map<HullSize, List<String>> sizeMap = new HashMap<>();
+        sizeMap.put(HullSize.CAPITAL_SHIP, new ArrayList<String>());
+        sizeMap.put(HullSize.CRUISER, new ArrayList<String>());
+        sizeMap.put(HullSize.DESTROYER, new ArrayList<String>());
+        sizeMap.put(HullSize.FRIGATE, new ArrayList<String>());
+
+        Collection<String> registeredVariants = Global.getSettings().getAllVariantIds();
+
+        for (String vId : registeredVariants) {
+            if (vId == null || !vId.toLowerCase().startsWith("neutrino_")) {
+                continue;
+            }
+
+            ShipVariantAPI variant = Global.getSettings().getVariant(vId);
+            if (!isMilitaryCombatShip(variant)) {
+                continue;
+            }
+
+            HullSize size = variant.getHullSize();
+            if (sizeMap.containsKey(size)) {
+                sizeMap.get(size).add(vId);
+            }
+        }
+
+        List<String> capitals = sizeMap.get(HullSize.CAPITAL_SHIP);
+        if (capitals != null && !capitals.isEmpty()) {
+            String capId = capitals.get(rand.nextInt(capitals.size()));
+            ShipVariantAPI v = Global.getSettings().getVariant(capId);
+            if (v != null) {
+                api.addToFleet(side, capId, FleetMemberType.SHIP, true);
+                flagshipSet = true;
+                currentDP += getVariantDP(v);
+            }
+        }
+
+
+        List<String> cruisers = sizeMap.get(HullSize.CRUISER);
+        if (cruisers != null && !cruisers.isEmpty()) {
+            int cruiserCount = 3 + rand.nextInt(2);
+            for (int i = 0; i < cruiserCount; i++) {
+                if (currentDP >= TARGET_DP) break;
+
+                String cruiserId = cruisers.get(rand.nextInt(cruisers.size()));
+                ShipVariantAPI v = Global.getSettings().getVariant(cruiserId);
+                if (v != null) {
+                    boolean isFlagship = !flagshipSet;
+                    api.addToFleet(side, cruiserId, FleetMemberType.SHIP, isFlagship);
+                    if (isFlagship) flagshipSet = true;
+                    currentDP += getVariantDP(v);
+                }
+            }
+        }
+
+
+        List<String> escorts = new ArrayList<>();
+        if (sizeMap.get(HullSize.DESTROYER) != null) escorts.addAll(sizeMap.get(HullSize.DESTROYER));
+        if (sizeMap.get(HullSize.FRIGATE) != null) escorts.addAll(sizeMap.get(HullSize.FRIGATE));
+
+        if (!escorts.isEmpty()) {
+            int safetyLimit = 30;
+            while (currentDP < TARGET_DP && safetyLimit > 0) {
+                safetyLimit--;
+                String escortId = escorts.get(rand.nextInt(escorts.size()));
+                ShipVariantAPI v = Global.getSettings().getVariant(escortId);
+                if (v == null) continue;
+
+                float dp = getVariantDP(v);
+                if (currentDP + (dp * 0.5f) > TARGET_DP && currentDP > 0) {
+                    break;
+                }
+
+                boolean isFlagship = !flagshipSet;
+                api.addToFleet(side, escortId, FleetMemberType.SHIP, isFlagship);
+                if (isFlagship) flagshipSet = true;
+                currentDP += dp;
+            }
+        }
+
+        return Math.round(currentDP);
+    }
+
+    /**
+     * Standard faction fleet composition rules:
+     * Generates a large fleet pool via FleetFactoryV3, then picks:
+     * - 1 Capital
+     * - 3 to 4 Cruisers
+     * - Rest Destroyers and Frigates up to 240 DP
+     */
+    private int generateStandardFactionFleetV3(FactionAPI faction, MissionDefinitionAPI api, FleetSide side, float qf) {
         FleetParamsV3 fleetParam = new FleetParamsV3(
                 null,
                 new Vector2f(),
                 faction.getId(),
-                0f, // qualityOverride
-                fleetType,
-                combat, // combatPts
-                freighter, // freighterPts 
-                tanker, // tankerPts
-                0f, // transportPts
-                0f, // linerPts
-                0f, // utilityPts
-                qf // qualityBonus
+                0f,
+                FleetTypes.PATROL_LARGE,
+                350f,
+                0f,
+                0f,
+                0f,
+                0f,
+                0f,
+                qf
         );
+
         CampaignFleetAPI fleet = FleetFactoryV3.createFleet(fleetParam);
-        
-//        CampaignFleetAPI fleet = FleetFactory.createGenericFleet(faction.getId(), side.toString(), qf, minFP);
-        if (fleet.getMembersWithFightersCopy().isEmpty()) return 0;
+        if (fleet == null || fleet.getMembersWithFightersCopy().isEmpty()) return 0;
+
+        Map<HullSize, List<FleetMemberAPI>> sizeMap = new HashMap<>();
+        sizeMap.put(HullSize.CAPITAL_SHIP, new ArrayList<FleetMemberAPI>());
+        sizeMap.put(HullSize.CRUISER, new ArrayList<FleetMemberAPI>());
+        sizeMap.put(HullSize.DESTROYER, new ArrayList<FleetMemberAPI>());
+        sizeMap.put(HullSize.FRIGATE, new ArrayList<FleetMemberAPI>());
+
         for (FleetMemberAPI m : fleet.getMembersWithFightersCopy()) {
-            String variant = m.getVariant().getHullVariantId();
-            if (m.getType() == FleetMemberType.FIGHTER_WING) {
-//                api.addToFleet(side, variant, FleetMemberType.FIGHTER_WING, false);
-            } else {
-                api.addToFleet(side, variant, FleetMemberType.SHIP, m.getShipName(), fleet.getFlagship() == m);
+            if (m.isFighterWing() || m.isStation()) continue;
+
+            ShipVariantAPI variant = m.getVariant();
+            if (!isMilitaryCombatShip(variant)) continue;
+
+            HullSize size = m.getHullSpec().getHullSize();
+            if (sizeMap.containsKey(size)) {
+                sizeMap.get(size).add(m);
             }
         }
-        return fleet.getFleetPoints();
+
+        float currentDP = 0f;
+        boolean flagshipSet = false;
+
+
+        List<FleetMemberAPI> capitals = sizeMap.get(HullSize.CAPITAL_SHIP);
+        if (capitals != null && !capitals.isEmpty()) {
+            FleetMemberAPI cap = capitals.get(rand.nextInt(capitals.size()));
+            float dp = getFleetMemberDP(cap);
+            api.addToFleet(side, cap.getVariant().getHullVariantId(), FleetMemberType.SHIP, cap.getShipName(), true);
+            flagshipSet = true;
+            currentDP += dp;
+        }
+
+
+        List<FleetMemberAPI> cruisers = sizeMap.get(HullSize.CRUISER);
+        if (cruisers != null && !cruisers.isEmpty()) {
+            int cruiserCount = 3 + rand.nextInt(2);
+            for (int i = 0; i < cruiserCount; i++) {
+                if (currentDP >= TARGET_DP || cruisers.isEmpty()) break;
+
+                FleetMemberAPI cruiser = cruisers.remove(rand.nextInt(cruisers.size()));
+                float dp = getFleetMemberDP(cruiser);
+
+                boolean isFlagship = !flagshipSet;
+                api.addToFleet(side, cruiser.getVariant().getHullVariantId(), FleetMemberType.SHIP, cruiser.getShipName(), isFlagship);
+                if (isFlagship) flagshipSet = true;
+                currentDP += dp;
+            }
+        }
+
+
+        List<FleetMemberAPI> escorts = new ArrayList<>();
+        if (sizeMap.get(HullSize.DESTROYER) != null) escorts.addAll(sizeMap.get(HullSize.DESTROYER));
+        if (sizeMap.get(HullSize.FRIGATE) != null) escorts.addAll(sizeMap.get(HullSize.FRIGATE));
+
+        if (!escorts.isEmpty()) {
+            int safetyLimit = 40;
+            while (currentDP < TARGET_DP && safetyLimit > 0 && !escorts.isEmpty()) {
+                safetyLimit--;
+                FleetMemberAPI escort = escorts.remove(rand.nextInt(escorts.size()));
+                float dp = getFleetMemberDP(escort);
+
+                if (currentDP + (dp * 0.5f) > TARGET_DP && currentDP > 0) {
+                    break;
+                }
+
+                boolean isFlagship = !flagshipSet;
+                api.addToFleet(side, escort.getVariant().getHullVariantId(), FleetMemberType.SHIP, escort.getShipName(), isFlagship);
+                if (isFlagship) flagshipSet = true;
+                currentDP += dp;
+            }
+        }
+
+        return Math.round(currentDP);
+    }
+
+    private float getVariantDP(ShipVariantAPI variant) {
+        if (variant == null || variant.getHullSpec() == null) return 10f;
+        float dp = variant.getHullSpec().getSuppliesToRecover();
+        return dp > 0 ? dp : 10f;
+    }
+
+    private float getFleetMemberDP(FleetMemberAPI member) {
+        if (member == null) return 10f;
+        float dp = member.getUnmodifiedDeploymentPointsCost();
+        if (dp <= 0) dp = member.getStats().getSuppliesToRecover().getModifiedValue();
+        return dp > 0 ? dp : 10f;
     }
 }
