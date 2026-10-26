@@ -1,1 +1,6 @@
 /starsector-intellij-template.iml
+/.idea
+/out
+/jars
+/.run
+
