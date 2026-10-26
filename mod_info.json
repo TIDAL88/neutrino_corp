@@ -2,7 +2,7 @@
   "id":"Neutrino", # internal id
 	"name":"Neutrino Corporation", # displayed to the player
 	"author":"Flashfrozen and Deathfly, maintained by TIDAL",
-	"version":"1.86-RC8",
+	"version":"1.90",
 	"description":"Yet another megacorporation, or said part of it R&D department, stuck in this sector after the Collapse.",
 	"gameVersion":"0.98",
 	"modPlugin":"data.scripts.NCModPlugin",
